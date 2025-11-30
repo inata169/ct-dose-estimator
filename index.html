@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CT被ばく線量推定ツール</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --text-light: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-color);
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .input-hint {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        .result-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .result-unit {
+            font-size: 0.875rem;
+            font-weight: 400;
+            color: var(--text-light);
+            margin-left: 4px;
+        }
+
+        .dose-level {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .dose-low {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .dose-medium {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .dose-high {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .info-box {
+            background-color: #eff6ff;
+            border-left: 4px solid var(--primary-color);
+            padding: 12px;
+            margin-top: 16px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .info-box p {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .reference-table {
+            margin-top: 16px;
+        }
+
+        .reference-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .reference-table th, .reference-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .reference-table th {
+            background-color: var(--bg-color);
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+
+        footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .container {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 1.25rem;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            select, input[type="number"] {
+                padding: 10px;
+            }
+
+            .result-value {
+                font-size: 1.1rem;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #0f172a;
+                --card-bg: #1e293b;
+                --text-color: #f1f5f9;
+                --text-light: #94a3b8;
+                --border-color: #334155;
+            }
+
+            select, input[type="number"] {
+                background-color: #0f172a;
+            }
+
+            .info-box {
+                background-color: #1e3a5f;
+            }
+
+            .reference-table th {
+                background-color: #0f172a;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CT被ばく線量推定ツール</h1>
+            <p class="subtitle">撮影条件から被ばく線量を概算します</p>
+        </header>
+
+        <div class="card">
+            <h2 class="card-title">撮影条件入力</h2>
+
+            <div class="form-group">
+                <label for="bodyPart">撮影部位</label>
+                <select id="bodyPart">
+                    <option value="head">頭部</option>
+                    <option value="neck">頸部</option>
+                    <option value="chest">胸部</option>
+                    <option value="abdomen" selected>腹部</option>
+                    <option value="pelvis">骨盤</option>
+                    <option value="chest-abdomen">胸腹部</option>
+                    <option value="whole-body">全身</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="kv">管電圧 (kV)</label>
+                <select id="kv">
+                    <option value="80">80 kV</option>
+                    <option value="100">100 kV</option>
+                    <option value="120" selected>120 kV</option>
+                    <option value="135">135 kV</option>
+                    <option value="140">140 kV</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="mas">mAs (管電流時間積)</label>
+                <input type="number" id="mas" value="200" min="10" max="1000" step="10">
+                <p class="input-hint">一般的な範囲: 100-400 mAs</p>
+            </div>
+
+            <div class="form-group">
+                <label for="scanLength">スキャン長 (cm)</label>
+                <input type="number" id="scanLength" value="30" min="1" max="200" step="1">
+                <p class="input-hint">撮影範囲の長さ</p>
+            </div>
+
+            <button class="btn" onclick="calculateDose()">線量を計算</button>
+        </div>
+
+        <div class="card results" id="results">
+            <h2 class="card-title">計算結果</h2>
+
+            <div class="result-item">
+                <span class="result-label">CTDIvol (容積線量指標)</span>
+                <span class="result-value"><span id="ctdivol">-</span><span class="result-unit">mGy</span></span>
+            </div>
+
+            <div class="result-item">
+                <span class="result-label">DLP (線量長さ積)</span>
+                <span class="result-value"><span id="dlp">-</span><span class="result-unit">mGy・cm</span></span>
+            </div>
+
+            <div class="result-item">
+                <span class="result-label">実効線量</span>
+                <span>
+                    <span class="result-value"><span id="effectiveDose">-</span><span class="result-unit">mSv</span></span>
+                    <span class="dose-level" id="doseLevel">-</span>
+                </span>
+            </div>
+
+            <div class="info-box">
+                <p><strong>使用した変換係数 (k-factor):</strong> <span id="kFactor">-</span> mSv/(mGy・cm)</p>
+                <p>※ ICRP Publication 103に基づく部位別変換係数を使用</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">参考情報</h2>
+
+            <div class="reference-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>被ばく源</th>
+                            <th>実効線量</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>胸部X線撮影</td>
+                            <td>約 0.1 mSv</td>
+                        </tr>
+                        <tr>
+                            <td>自然放射線 (年間)</td>
+                            <td>約 2.4 mSv</td>
+                        </tr>
+                        <tr>
+                            <td>頭部CT</td>
+                            <td>約 2 mSv</td>
+                        </tr>
+                        <tr>
+                            <td>胸部CT</td>
+                            <td>約 7 mSv</td>
+                        </tr>
+                        <tr>
+                            <td>腹部CT</td>
+                            <td>約 10 mSv</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-box">
+                <p><strong>注意:</strong> この計算結果は概算値です。実際の被ばく線量は使用するCT装置、撮影プロトコル、患者の体格等により異なります。正確な線量は各施設のCT装置の線量レポートをご確認ください。</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>CT被ばく線量推定ツール v1.0</p>
+            <p>計算式はICRP Publication 103および一般的なCT線量データに基づいています</p>
+            <p><a href="https://github.com/inata169/ct-dose-estimator" target="_blank">GitHub</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // 部位別パラメータ（ICRP Publication 103準拠）
+        const bodyPartParams = {
+            'head': {
+                name: '頭部',
+                kFactor: 0.0021,      // mSv/(mGy・cm) - 16cm ファントム基準
+                baseCTDI: 58,          // mGy (120kV, 100mAs基準)
+                phantom: 16,           // ファントム径 (cm)
+                typicalScanLength: 20  // 典型的なスキャン長 (cm)
+            },
+            'neck': {
+                name: '頸部',
+                kFactor: 0.0059,
+                baseCTDI: 25,
+                phantom: 16,
+                typicalScanLength: 15
+            },
+            'chest': {
+                name: '胸部',
+                kFactor: 0.014,
+                baseCTDI: 12,
+                phantom: 32,
+                typicalScanLength: 30
+            },
+            'abdomen': {
+                name: '腹部',
+                kFactor: 0.015,
+                baseCTDI: 14,
+                phantom: 32,
+                typicalScanLength: 35
+            },
+            'pelvis': {
+                name: '骨盤',
+                kFactor: 0.015,
+                baseCTDI: 14,
+                phantom: 32,
+                typicalScanLength: 20
+            },
+            'chest-abdomen': {
+                name: '胸腹部',
+                kFactor: 0.015,
+                baseCTDI: 13,
+                phantom: 32,
+                typicalScanLength: 50
+            },
+            'whole-body': {
+                name: '全身',
+                kFactor: 0.015,
+                baseCTDI: 12,
+                phantom: 32,
+                typicalScanLength: 100
+            }
+        };
+
+        // 管電圧による線量補正係数
+        function getKvFactor(kv) {
+            // 120kVを基準(1.0)とした補正係数
+            // 線量はおおよそ電圧の2.5乗に比例
+            const baseKv = 120;
+            return Math.pow(kv / baseKv, 2.5);
+        }
+
+        // 線量計算関数
+        function calculateDose() {
+            // 入力値取得
+            const bodyPart = document.getElementById('bodyPart').value;
+            const kv = parseFloat(document.getElementById('kv').value);
+            const mas = parseFloat(document.getElementById('mas').value);
+            const scanLength = parseFloat(document.getElementById('scanLength').value);
+
+            // 入力値バリデーション
+            if (isNaN(mas) || mas <= 0) {
+                alert('mAsに正しい値を入力してください。');
+                return;
+            }
+            if (isNaN(scanLength) || scanLength <= 0) {
+                alert('スキャン長に正しい値を入力してください。');
+                return;
+            }
+
+            // パラメータ取得
+            const params = bodyPartParams[bodyPart];
+
+            // CTDIvol計算
+            // 基準: 120kV, 100mAs
+            const kvFactor = getKvFactor(kv);
+            const masFactor = mas / 100;
+            const ctdivol = params.baseCTDI * kvFactor * masFactor;
+
+            // DLP計算
+            const dlp = ctdivol * scanLength;
+
+            // 実効線量計算
+            const effectiveDose = dlp * params.kFactor;
+
+            // 結果表示
+            document.getElementById('ctdivol').textContent = ctdivol.toFixed(1);
+            document.getElementById('dlp').textContent = dlp.toFixed(0);
+            document.getElementById('effectiveDose').textContent = effectiveDose.toFixed(2);
+            document.getElementById('kFactor').textContent = params.kFactor;
+
+            // 線量レベル表示
+            const doseLevelElement = document.getElementById('doseLevel');
+            if (effectiveDose < 3) {
+                doseLevelElement.textContent = '低線量';
+                doseLevelElement.className = 'dose-level dose-low';
+            } else if (effectiveDose < 10) {
+                doseLevelElement.textContent = '中程度';
+                doseLevelElement.className = 'dose-level dose-medium';
+            } else {
+                doseLevelElement.textContent = '高線量';
+                doseLevelElement.className = 'dose-level dose-high';
+            }
+
+            // 結果セクションを表示
+            document.getElementById('results').classList.add('show');
+
+            // 結果までスクロール
+            document.getElementById('results').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        // 部位変更時にスキャン長を自動調整（オプション）
+        document.getElementById('bodyPart').addEventListener('change', function() {
+            const params = bodyPartParams[this.value];
+            document.getElementById('scanLength').value = params.typicalScanLength;
+        });
+
+        // エンターキーで計算実行
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                calculateDose();
+            }
+        });
+    </script>
+</body>
+</html>
